@@ -2,7 +2,7 @@
 * Kamal Kamalaldin
 * 12/21/2016
 
-This project is the culmination of my work over the MLND program at Udacity and my summer Research Experience for Undergraduates at UCCS (Colorado). All the information required to understand this project is in the file main.pdf. A companion python notebook has been provided for the exploration of the data and reproducibility.
+This project is the culmination of my work over the MLND program at Udacity and my summer Research Experience for Undergraduates at UCCS (Colorado). All the information required to understand this project is in the file **Report.pdf**. A companion python notebook has been provided for the exploration of the data and reproducibility.
 
 To run the python notebook, you will need to install the following prerequisite programs
 
