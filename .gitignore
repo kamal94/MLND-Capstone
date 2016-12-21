@@ -1,4 +1,5 @@
 *.aux
+pairwise_causality_regional_CSD.csv
 *.bbl
 *.blg
 *.fls
