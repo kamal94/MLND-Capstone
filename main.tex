@@ -38,11 +38,35 @@
 
 \section{Definition}
 \subsection{Project Overview}
-This project explores the possibility applications of unsupervised learning on classifying different brain states in a rat's brain. The topic is in the neuroscience field, and the motivation behind this project is to help detect epilepsy in the human brain. Although there have been approaches to solving this problem by applying neural networks to EEG signals, and a recent competition has been launched on Kaggle that deals with epilepsy prediction, we take a different approach to this problem by relying on a causality model that is not often used in the field of machine learning. This causality model, Sugihara Causality, is used as a means to establish a measure of brain communication patterns. Using this causality model, we were able to build a series of graphs each of which (theoretically) represents a snapshot of brain communication. Since these graphs are highly dimensional, we use PCA to attempt to reduce its complexity before clustering. we then analyze different clustering possibilities and finally observe if clustering gives an intelligible insight into classifying epileptic and non epileptic brain states. 
+This project explores the possibility applications of unsupervised learning on classifying different brain states in a rat's brain. The topic is in the neuroscience field, and the motivation behind this project is to help detect epilepsy in the human brain. Although there have been approaches to solving this problem by applying neural networks to EEG signals, and a recent competition has been launched on Kaggle that deals with epilepsy prediction, we take a different approach to this problem by relying on a causality model that is not often used in the field of machine learning \cite{KaggleEpilepsy2016}. This causality model, Sugihara Causality, is used as a means to establish a measure of brain communication patterns \cite{Sugihara2012}. Using this causality model, we were able to build a series of graphs each of which (theoretically) represents a snapshot of brain communication. Since these graphs are highly dimensional, we use PCA to attempt to reduce its complexity before clustering. we then analyze different clustering possibilities and finally observe if clustering gives an intelligible insight into classifying epileptic and non epileptic brain states. 
 
 
 The dataset used in this project has been collected privately by Dr. Zsolt Borhegyi at MTA-TKI , MTA-ELTE-NAP B-Opto-Neuropharmacology Group in Hungary. The original data consisted of EEG recordings of a rat's brain. The processed (graph series) version of the data can be downloaded from https://drive.google.com/file/d/0BzyCB-i-aKDWU2pBYkVoOV81S3M/view?usp=sharing. The research conducted in this paper was also funded by the NSF as part of grant $1359275$ at the University of Colorado Colorado Springs. 
 
+
+\subsection{Problem Statement}
+
+Given a mesh of EEG signals that have been translated into a brain region communication graph series, can we cluster the graphs into meaningful segments that can help us find epilepsy states. To find out, we plan to use unsupervised clustering in the form of Gaussian Mixture algorithm. We also employ principal component analysis (PCA) to help reduce the dimensionality of the data for faster processing time.
+
+% In this section, you will need to clearly define the metrics or calculations you will use to measure performance of a model or result in your project. These calculations and metrics should be justified based on the characteristics of the problem and problem domain. Questions to ask yourself when writing this section:
+
+% Are the metrics you’ve chosen to measure the performance of your models clearly discussed and defined?
+% Have you provided reasonable justification for the metrics chosen based on the problem and solution?
+\subsection{Metrics}
+The unsupervised learning used here along with the high dimensionality of the dataset used in this project bring with them a unique difficulty in terms of defining a clear scoring method. In the scikit-learn library, there are only two methods that can be used to give a score to clusters (assuming no knowledge of \textit{true} labels of each data point): Silhouette Coefficient and Calinsky-Harabaz Index. Both scores ascertain the quality of clustering by measuring how dense, well defined, and separated the clusters are. We are forced to use these metrics due to the nature of the data we are given, as we don't know the true labels of the data points. However, we do know the specific times of when epilepsy was induced, and since epilepsy is \textit{one} state in the brain, then we can use the time indicies for epilepsy to be the one cluster we perform an F1 metric on. The F1 score is calculated as 
+
+\begin{align*}
+	F_1 &= 2 \cdot \frac{precision \cdot recall}{precision + recall} \\
+	precision &= \frac{\text{True Positive}}{\text{True Positive} + \text{False Positive}} \\
+	recall &= \frac{\text{True Positive}}{\text{True Positive} + \text{False Negative}}
+\end{align*}
+
+where positive is epilepsy and negative is non-epilepsy.
+
+
+\newpage
+\section{Analysis}
+% (approx. 2-4 pages)
 \subsection{Methods}
 \subsubsection{Data Collection}
 EEG data was collected from an 4x8 endodermal electrode array at a frequency of 1000 Hz (31 channels, one channel malfunctioned, Fig. \ref{fig:rat_experiment}). The data recording lasts for ~500 seconds, during which epileptic seizures were evoked using 4-aminopyridine and EEG data was recorded from the electrode array. The spiking voltage of each recorded electrode is used as a signal and is referred to as a channel (Fig. \ref{fig:example_eeg_and_kcsd}). Each channel has a continuous data series that spans the 500 seconds.
@@ -71,15 +95,15 @@ EEG data was collected from an 4x8 endodermal electrode array at a frequency of 
 
 \begin{table}[H]
 \centering
-\caption{Configurations used for the sliding window when calculating Sugihara causality that was used as a measure of brain communication. These configurations inform our model of the granularity of brain communication. Since we do not know exactly how quickly information is being passed down from region to region, arbitrary choices were made to test how well each performs and make a more informed decision in future research.}
+\caption{Configurations used for the sliding window when calculating Sugihara causality that was used as a measure of brain communication. These configurations inform our model of the granularity of brain communication. Since we do not know exactly how quickly information is being passed down from region to region, arbitrary choices were made to test how well each performs and make a more informed decision in future research. Because we have different time steps, there are a different number of graphs (data points) in each dataset.}
 \label{tab:sliding_window_configuration}
-\begin{tabular}{|c|c|c|}
+\begin{tabular}{|c|c|c|c|}
 \hline
- Dataset name &  Time window &  Time step \\ \hline
+ Dataset name &  Time window &  Time step & Number of Data points\\ \hline
  
- dataset 50 & 200 & 50  \\ \hline
- dataset 200 & 200 & 200 \\ \hline
- dataset 250 & 2000 & 250  \\ \hline
+ dataset 50 & 200 & 50 & 10190 \\ \hline
+ dataset 200 & 200 & 200 & 2547 \\ \hline
+ dataset 250 & 2000 & 250 &  2038 \\ \hline
 \end{tabular}
 \end{table}
 
@@ -89,7 +113,7 @@ Kernel Current Source Density (kCSD) method was used on the grid of channels to 
 Afterwards, in order to reduce the data size that is operated on, we lumped channels from the same brain regions together by averaging them (Fig. \ref{fig:brain_region_lumping}). In addition to reducing dimensionality, this process also puts emphasis of causality on functional brain regions instead of a local cluster of neurons. 
 
 \subsubsection{Sugihara Causality Measurement}
-After lumping the kCSD signals from the same region, we perform Sugihara Causality calculation on the regions by using a sliding windows method (Fig. \ref{fig:example_eeg_and_kcsd}). Because we do not know how granular of a time frame the brain uses to communicate (and how that affects the EEG signal we record), we use three different time scales as reported in table \ref{tab:sliding_window_configuration}. This produces 3 datasets with similar characteristics. The important thing to keep in mind is that after this step, each causality measure that resulted from the Sugihara Causality analysis is a measure of how much one region is affecting the other, and we use that as a way to describe brain communication and information flow. Each causality measure is therefore an \textit{edge} of communication from one region to another, meaning that each brain region is a node and each causality measure is a weighted edge. Figure \ref{fig:sample_graph} shows a sample graph constructed from joining all the causality measures from a specific time window. This is essentially a (theoretical) snapshot of how each brain region was affecting other brain regions in that time window.
+After lumping the kCSD signals from the same region, we perform Sugihara Causality calculation on the regions by using a sliding windows method (Fig. \ref{fig:example_eeg_and_kcsd}). Sugihara Causality is discussed in detail in the appendix, and any discussion or reference can be obtained there. Because we do not know how granular of a time frame the brain uses to communicate (and how that affects the EEG signal we record), we use three different time scales as reported in table \ref{tab:sliding_window_configuration}. This produces 3 datasets with similar characteristics. The important thing to keep in mind is that after this step, each causality measure that resulted from the Sugihara Causality analysis is a measure of how much one region is affecting the other, and we use that as a way to describe brain communication and information flow. Each causality measure is therefore an \textit{edge} of communication from one region to another, meaning that each brain region is a node and each causality measure is a weighted edge. Figure \ref{fig:sample_graph} shows a sample graph constructed from joining all the causality measures from a specific time window. This is essentially a (theoretical) snapshot of how each brain region was affecting other brain regions in that time window.
 
 \begin{figure}[H]
   \centering
@@ -106,24 +130,10 @@ After lumping the kCSD signals from the same region, we perform Sugihara Causali
   \label{fig:sample_graph}
 \end{figure}
 
-
-\subsection{Problem Statement}
-
-Given a mesh of EEG signals that have been translated into a brain region communication graph series, can we cluster the graphs into meaningful segments that can help us find epilepsy states. To find out, we plan to use unsupervised clustering in the form of Gaussian Mixture algorithm. We also employ principal component analysis (PCA) to help reduce the dimensionality of the data for faster processing time.
-
-% In this section, you will need to clearly define the metrics or calculations you will use to measure performance of a model or result in your project. These calculations and metrics should be justified based on the characteristics of the problem and problem domain. Questions to ask yourself when writing this section:
-
-% Are the metrics you’ve chosen to measure the performance of your models clearly discussed and defined?
-% Have you provided reasonable justification for the metrics chosen based on the problem and solution?
-\subsection{Metrics}
-The unsupervised learning used here along with the high dimensionality of the dataset used in this project bring with them a unique difficulty in terms of defining a clear scoring method. In the scikit-learn library, there are only two methods that can be used to give a score to clusters (assuming no knowledge of \textit{true} labels of each data point): Silhouette Coefficient and Calinsky-Harabaz Index. Both scores ascertain the quality of clustering by measuring how dense, well defined, and separated the clusters are. We are forced to use these metrics due to the nature of the data we are given, as we don't know the true labels of the data points. However, we do know the specific times of when epilepsy was induced, and since epilepsy is \textit{one} state in the brain, then we can use the time indecies for epilepsy to be the one cluster we perform an accuracy (possibly F1) metric on.
-
-\section{Analysis}
-% (approx. 2-4 pages)
-
 \subsection{Data Exploration and Visualization}
-The data we produced is a series of complete, directed graphs (all the same topology; each node is a brain region as seen in figure \ref{fig:rat_experiment}; each edge is a causality/communication measure) and their edge weights that we refer to as $\rho$ scores. For each graph, there are $132$ $\rho$ scores, all of which range between 0 and 1 (decimals). Most of the $\rho$ scores appear to be of high values, suggesting high connectivity between brain regions and therefore a high density graph (Fig. \ref{fig:rho_hist_all_experiment}). Furthermore, we also notice that many of the $\rho$ scores to be similar within a pair of nodes (Fig. \ref{fig:diff_within_pair_hist}). For example, when looking at regions 1 and 2 within the first 200 milliseconds, they appear to be equally communicating to one another (Fig. \ref{fig:sample_pair_causality_plot}). This could be indicative of either bidirectional causality or unidirectional forcing, both of which can be detected by the Sugihara model.
+The data we produced is a series of complete, directed graphs (all the same topology; each node is a brain region as seen in figure \ref{fig:rat_experiment}; each edge is a causality/communication measure) and their edge weights that we refer to as $\rho$ scores ($\rho$ is the convention name for the score of a Sugihara Causality analysis [see appendix]). Since we processed the data with different time steps, there are a different number of graphs available in each dataset (Tab. \ref{tab:sliding_window_configuration}). For each graph, there are $132$ $\rho$ scores, all of which range between 0 and 1 (decimals). Each graph was transformed into a vector where each vector is a data point, and all vectors make a dataset. This transformation was required for the data to be entered into sklearn's Gaussian Mixture model function properly.
 
+In all graphs, most of the $\rho$ scores appear to be of high values, suggesting high connectivity between brain regions and therefore a high density graph (Fig. \ref{fig:rho_hist_all_experiment}). This indicates that there is constant information flow between regions in the brain. Furthermore, we also notice that many of the $\rho$ scores to be similar within a pair of nodes (Fig. \ref{fig:diff_within_pair_hist}). For example, when looking at regions 1 and 2 within the first 200 milliseconds, they appear to be equally communicating to one another (Fig. \ref{fig:sample_pair_causality_plot}). This could be indicative of either bidirectional causality or unidirectional forcing, both of which can be detected by the Sugihara model.
 
 \begin{figure}[H]  
 	\centering
@@ -170,13 +180,20 @@ The data we produced is a series of complete, directed graphs (all the same topo
 % If a plot is provided, are the axes, title, and datum clearly defined?
 
 \subsection{Algorithms and Techniques}
-For the clustering, we choose the Gaussian Mixture algorithm as implemented by the Sci-kit learn python library. Gaussian Mixture Model (GMM) clustering can be thought of as a K-means algorithm that is generalized to account for the covariance of the data and centers of the Gaussian distributions. Because of this feature, while K-means algorithm only clusters data points in spherical shapes, the GMM model allows clusters to take many shapes. For these reasons, the GMM would be a more suitable algorithm to use in our case. GMM has a few parameters that could be tuned, the most important of which is the covariance type (full, tied, diagonal, or spherical) which dictates how the cluster edges are expanded and how the clusters grow. This parameter will be fine tuned using grid search. 
+The machine learning algorithms we use in this project are all centered around unsupervised learning, specifically clustering using an altered version of K-means called the Gaussian Mixture model. K-mean algorithms require as input a number $n$ of clusters to find, and a set of data points on which the clusters are to be found. The algorithm then works by choosing $n$ random points in the data set and setting them as centers of the clusters. Each data point that is not a center then becomes in the cluster of the nearest center. The centers are then incrementally reassigned to be the mean of the points in the clusters. This method converges in finite time to a solution, and most of the time (depending on the random initialization) finds good clusters that are well separated and in which each cluster has data points that share common features. 
+
+Here, we choose the Gaussian Mixture algorithm as implemented by the Sci-kit learn python library instead of the simple K-means algorithm. Gaussian Mixture Model (GMM) clustering can be thought of as a K-means algorithm that is generalized to account for the covariance of the data and centers of the Gaussian distributions. Because of this feature, while K-means algorithm only clusters data points in spherical shapes, the GMM model allows clusters to take many shapes as described below under the name covariance type. For these reasons, the GMM would be a more suitable algorithm to use in our case. GMM has a few parameters that could be tuned, the most important of which is the covariance type (full, tied, diagonal, or spherical) which dictates how the cluster edges are expanded and how the clusters grow. This parameter will be fine tuned using grid search. 
+
+Furthermore, we use Principal Component Analysis (PCA) to reduce the dimensionality of the dataset. This reduction is important because we have 132 features, and reducing them would result in a simpler analysis of the dataset. PCA works by finding the $n$ axes of most variance in the dataset and transforming the dataset into a space of only these axes. This essentially describes the dataset in a new, lesser set of dimensions than the original dimensions.
+
+Another algorithm that is used is Grid Search, used for fine tunning the Gaussian Mixture model. The grid search algorithm is much simpler than the previous algorithms, since all it does is try to create a model with different parameters and scores each model using a given scoring function. The grid search object then ranks the models based on their scores, and can be used to retrieve the best parameters (the ones that produce the highest score).
 % In this section, you will need to discuss the algorithms and techniques you intend to use for solving the problem. You should justify the use of each one based on the characteristics of the problem and the problem domain. Questions to ask yourself when writing this section:
 
 % Are the algorithms you will use, including any default variables/parameters in the project clearly defined?
 % Are the techniques to be used thoroughly discussed and justified?
 % Is it made clear how the input data or datasets will be handled by the algorithms and techniques chosen?
 \subsection{Benchmark}
+\label{sec:benchmark}
 Since this method has never been attempted before (using Sugihara Causality graphs to identify epilepsy), providing a succinct and complete benchmark is a difficult task. Furthermore, the clustering here is used to explore whether or not there are any extractable information from causal networks in the brain, and whether the brain communicates differently when it is suffering from epilepsy compared to when it is operating normally. 
 
 Keeping this in mind, we rely on the simple F1 score to provide a simple reliability measure of how well the clustering is separating and predicting the epilepsy cluster. Since we know that epilepsy doesn't happen often in our dataset (only ~20 seconds  of epilepsy related events in our ~500 seconds dataset), we can assign the cluster with the least data points as the epilepsy one, and then measure how exclusive the epilepsy cluster is to the times when epilepsy was \textit{actually} happening by measuring an F1 score. Since our epilepsy happens for about 4\% of the dataset, then the baseline score we expect should be 96\% of accuracy and 0.99 F1 score. These scores are attained if all the data points were labeled as one (non-epilepsy) cluster.
@@ -191,7 +208,9 @@ Keeping this in mind, we rely on the simple F1 score to provide a simple reliabi
 
 \subsection{Data Preprocessing}
 
-Some of our edge weights had some Not A Numerical values, and those were altered to 0, which is the lowest $\rho$ score possible. Once that error was corrected and the data has been put in the graph series format, separated into the three different datasets, we perform Principal Component Analysis (PCA) to reduce the dimensionality of the datasets. This both gives us insight into what components of the graph are logically important for the model and helps decrease the time required to run our model. The results of PCA was used to create three different datasets from each dataset: a dataset that covered 80\% of the variance, a dataset that covered 90\% of the variance, and a dataset that covered 99\% of the variance. This was done to test how dimensionality reduction would affect the final clustering efforts. If the scoring for the reduced datasets with only 80\% of the variance is similar to the scoring of the reduced datasets with 99\% of the variance, then we use the less dimensional reduced datasets even though they give us a less accurate version of the original information. A list of the PCA datasets and their different variance levels are reported in table \ref{tab:pca_datasets}. After the principal component analysis was done on the datasets, the components required to reach the threshold levels of 80, 90, and 99 percents were recorded in table \ref{tab:components_needed_for_variance} (Fig. \ref{fig:pca_analysis_variance}).
+Some of our edge weights had some Not A Numerical values, and those were altered to 0, which is the lowest $\rho$ score possible. Once that error was corrected and the data has been put in the graph series format, separated into the three different datasets, we perform Principal Component Analysis (PCA) to reduce the dimensionality of the datasets. This both gives us insight into what components of the graph are logically important for the model and helps decrease the time required to run our model. The results of PCA was used to create three different datasets from each dataset: a dataset that covered 80\% of the variance, a dataset that covered 90\% of the variance, and a dataset that covered 99\% of the variance. This was done to test how dimensionality reduction would affect the final clustering efforts. Furthermore, there were some edges that showed a consistent weight of 0 (for example, all edges from node 2 to node 1 were of weight 0), and having that redundant data is not helpful to distinguishing states. PCA would help us remove such unvarying features from the datasets.
+
+ If the scoring for the reduced datasets with only 80\% of the variance is similar to the scoring of the reduced datasets with 99\% of the variance, then we use the less dimensional reduced datasets even though they give us a less accurate version of the original information. The original dimensionality of the datasets was 132 features per data point, and a list of the PCA datasets and their different variance levels with component numbers are reported in table \ref{tab:pca_datasets}. After the principal component analysis was done on the datasets, the components required to reach the threshold levels of 80, 90, and 99 percents were recorded in table \ref{tab:components_needed_for_variance} (Fig. \ref{fig:pca_analysis_variance}).
 
 
 \begin{table}[H]
@@ -241,6 +260,17 @@ dataset 250 & reduced 250 80 & reduced 250 90 & reduced 250 99  \\ \hline
 \subsection{Implementation}
 Once the dimensionality of the data was reduced with PCA, a Gaussian Mixture clusterer was initiated for each dataset from table \ref{tab:pca_datasets}, and all number of clusters from $2$ to $40$ were tried and tested by the Silhouette Coefficient and Calinsky-Harabaz Index scorers (Figs. \ref{fig:silhouette_scores}, \ref{fig:calinsky_scores}).
 
+The complete ordered list of procedures was:
+\begin{itemize}
+	\item Removing NaN's with 0's if any exist in the edge weights
+	\item Splitting the dataset into three datasets depending on the time step used
+	\item Vectorizing the graphs so that each graph is a data point
+	\item Running PCA analysis on the three datasets with varying degree of variance kept, creating 9 total datasets
+	\item Clustering the PCA-reduced datasets with cluster numbers from 2 to 40.
+	\item Computing Silhouette and Calinsky scores on the clusters in the previous step
+\end{itemize}
+
+The procedures were implemented successfully, but computing the silhouette and Calinsky scores was a bottleneck as it required calculating the distances between each data point. This could possibly have been avoided by pre-calculating the distances between all data points and passing them to the silhouette and Calinsky scoring functions, a feature available in the sci-kit learn library.
 
 \begin{figure}[H]
   \centering
@@ -265,7 +295,7 @@ Once the dimensionality of the data was reduced with PCA, a Gaussian Mixture clu
 % Was there any part of the coding process (e.g., writing complicated functions) that should be documented?
 \subsection{Refinement}
 
-From figures \ref{fig:silhouette_scores} and \ref{fig:calinsky_scores}, it can be seen that the best clustering number is two, and it happens with dataset \textit{reduced 50 80} (dataset that is made with time step of 50 and transformed with PCA). We therefore fine tuned a Gaussian Mixture model with the dataset 50, and arrived at a \textit{covariance type} of 'tied' and a silhouette score of $0.254$. This is an improvement by 0.05 in the silhouette score, which is a ~25\% improvement.
+From figures \ref{fig:silhouette_scores} and \ref{fig:calinsky_scores}, it can be seen that the best clustering number is two, and it happens with dataset \textit{reduced 50 80} (dataset that is made with time step of 50 and transformed with PCA). We therefore fine tuned a Gaussian Mixture model with the \textit{reduced 50 80} dataset using Grid Search as implemented by the scikit learn library. The silhouette score was used as a scoring function for the grid search performance measurement. The parameters tuned with grid search was the \textit{covariance type} (with a choice of tied, diagonal, sphere, or full), and the best parameter was 'tied' with a silhouette score of $0.254$. This is an increase of 0.05 in the silhouette score, which is a ~25\% improvement.
 % In this section, you will need to discuss the process of improvement you made upon the algorithms and techniques you used in your implementation. For example, adjusting parameters for certain models to acquire improved solutions would fall under the refinement category. Your initial and final solutions should be reported, as well as any significant intermediate results as necessary. Questions to ask yourself when writing this section:
 
 % Has an initial solution been found and clearly reported?
@@ -276,9 +306,9 @@ From figures \ref{fig:silhouette_scores} and \ref{fig:calinsky_scores}, it can b
 % (approx. 2-3 pages)
 
 \section{Model Evaluation and Validation}
-The results so far indicate that the rat's brain showed the presence of two distinct brain states, as we can cluster the brain's communication network into two clusters. This could be good news, since we can assume that the two brain states are \textit{epilepsy state} and \textit{normal state}. This simplifies our choice of metric to evaluate the model since we can use a simple F1 measurement by assuming the less frequent brain state is the epileptic state, and record the less occurring cluster as the epileptic cluster; we then test the time indecies of this cluster with the time indecies we were given for when epilepsy was evoked. Since we know that the epilepsy happened between seconds 447-457 and 250-260, we set true labels to be $0$ for all data points that were in that time period, and $1$ for all other data points. We then set the less frequent cluster to be of label $0$ (epilepsy cluster) and the more frequent cluster to $1$ (non-epilepsy cluster). Our evaluation metric then becomes the F1 score of the predicted labels against the true labels that we produced given the knowledge of our experiment.
+The results so far indicate that the rat's brain showed the presence of two distinct brain states, as we can cluster the brain's communication network into two clusters. This could be good news, since we can assume that the two brain states are \textit{epilepsy state} and \textit{normal state}. This simplifies our choice of metric to evaluate the model since we can use a simple F1 measurement by assuming the less frequent brain state is the epileptic state, and record the less occurring cluster as the epileptic cluster; we then test the time indicies of this cluster with the time indicies we were given for when epilepsy was evoked. Since we know that the epilepsy happened between seconds 447-457 and 250-260, we set true labels to be $0$ for all data points that were in that time period, and $1$ for all other data points. We then set the less frequent cluster to be of label $0$ (epilepsy cluster) and the more frequent cluster to $1$ (non-epilepsy cluster). Our evaluation metric then becomes the F1 score of the predicted labels against the true labels that we produced given the knowledge of our experiment.
 
-Using the fine-tuned model, we achieve an F1 score of 0.788, which seems acceptable at first, but is rather disappointing when realizing that a blind guess of setting all the labels to 1 (non epileptic state) results in an F1 score of 0.99. This is mainly due to the fact that the epilepsy state is infrequent, and so a clustering of non-epilepsy state as epilepsy creates a great error. This indicates that our model does not perform better than blindly guessing that there is only one state in the brain. This does not align with our hopes and expectations for the clustering solution. 
+Using the fine-tuned model, we achieve an F1 score of 0.788, which seems acceptable at first, but is rather disappointing when considering that the blind benchmark discussed in section \ref{sec:benchmark} has a score of 0.99. This is mainly due to the fact that the epilepsy state is infrequent, and so a clustering of non-epilepsy state as epilepsy creates a great error. This indicates that our model does not perform better than blindly guessing that there is only one state in the brain. This does not align with our hopes and expectations for the clustering solution. 
 % In this section, the final model and any supporting qualities should be evaluated in detail. It should be clear how the final model was derived and why this model was chosen. In addition, some type of analysis should be used to validate the robustness of this model and its solution, such as manipulating the input data or environment to see how the model’s solution is affected (this is called sensitivity analysis). Questions to ask yourself when writing this section:
 
 % Is the final model reasonable and aligning with solution expectations? Are the final parameters of the model appropriate?
@@ -347,11 +377,6 @@ Due to the high dimensionality of the dataset we worked with, it was difficult t
 
 
 
-
-
-
-
-
 % \thispagestyle{empty}
 % \cleardoublepage
 
@@ -360,9 +385,14 @@ Due to the high dimensionality of the dataset we worked with, it was difficult t
 % \thispagestyle{empty}
 % \cleardoublepage
 
-
 \section*{Acknowledgment}
 Special thanks goes to Dr. Somogivari and Dorrottya R. from Winger RCP, Budapest for providing the neuronal data used in this paper. Furthermore, Dr. Peter Erdi is thanked for his patient guidance of this research topic which was instrumental for the production of this paper.
+
+% \appendix
+\newpage
+\begin{appendix}
+	\input{Sugihara}
+\end{appendix}
 \balance
 \bibliographystyle{IEEEtran}
 \bibliography{IEEEabrv,main.bib}
